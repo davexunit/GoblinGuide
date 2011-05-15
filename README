@@ -1,0 +1,7 @@
+FAQScaper - A simple GameFAQs scraper for GNU/Linux
+---------------------------------------------------
+
+Purpose
+-------
+To give myself an easy way to search for and download game guides to read with my favorite text editor without needing to use a web browser.
+... And to learn curses and screen scraping. :]
