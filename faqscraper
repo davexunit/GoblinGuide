@@ -2,6 +2,7 @@
 
 import curses
 import sys
+import fnmatch
 import urllib
 import subprocess
 import scrape
@@ -93,6 +94,12 @@ def choose_faq(stdscr, faq_url):
 	height, width = stdscr.getmaxyx()
 	# Prompt user with a menu to choose the search result they want
 	choice = menu(stdscr, 1, 1, height - 2, width - 2, 'FAQs', choices)
+	link = faqs[choice][5]
+	# Most of the time the FAQ links are html files that need one more step of scraping to get the plain text...
+	# ... but sometimes the link goes directly to the text file
+	# So, that's what this little line of code checks for
+	if fnmatch.fnmatch(link, '*.txt'):
+		read_faq(link)
 	# Since the faq document is in html we need to scrape the page to get the plain text download url
 	text_faq = scrape.plaintext_faq(faqs[choice][5])
 	read_faq(text_faq)
