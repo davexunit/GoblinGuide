@@ -29,9 +29,8 @@ def menu(stdscr, y, x, height, width, title, choices):
 	clear(stdscr)
 	stdscr.addstr(y, (width - len(title)) / 2, title, curses.A_BOLD)
 	stdscr.refresh()
-	# Adjust height and y value for the pad
+	# Adjust y value for the pad
 	y += 1
-	height -= 1
 	# Loop while responding to keyboard input
 	while True:
 		# Display all search results
@@ -51,20 +50,32 @@ def menu(stdscr, y, x, height, width, title, choices):
 		# Scroll up/down list
 		elif c == curses.KEY_DOWN or c == ord('j'):
 			choice += 1
-			choice = choice % len(choices)
+			choice = min(len(choices) - 2, choice)
 		elif c == curses.KEY_UP or c == ord('k'):
 			choice -= 1
-			choice = choice % len(choices)
+			choice = max(0, choice)
+		# Page up/down
+		elif c == curses.KEY_NPAGE:
+			choice += height - 1
+			choice = min(len(choices) - 2, choice)
+		elif c == curses.KEY_PPAGE:
+			choice -= height - 1
+			choice = max(0, choice)
+		# Home/End
+		elif c == curses.KEY_HOME:
+			choice = 0
+		elif c == curses.KEY_END:
+			choice = len(choices) - 2
 		# Break out of loop on enter key which will bring the user to the FAQ screen
 		elif c == ord('\n'):
 			break
 	
 	return choice
 
-def search(stdscr):
-	clear(stdscr)
-	search = get_input(stdscr, 1, 1, 'Enter game search: ', 60)
-	choose_search_result(stdscr, scrape.game_search(search))
+def search(screen):
+	clear(screen)
+	search = get_input(screen, 1, 1, 'Enter game search: ', 60)
+	choose_search_result(screen, scrape.game_search(search))
 
 def choose_search_result(stdscr, results):
 	'''Displays a menu for the user to choose a game from a list of search results.
@@ -73,6 +84,9 @@ def choose_search_result(stdscr, results):
 	choices = []
 	for result in results:
 		choices.append('%s - %s' % result[:2])
+	f = open('out', 'w')
+	f.write(str(choices))
+	f.close()
 	# Get width and height of window
 	height, width = stdscr.getmaxyx()
 	# Prompt user with a menu to choose the search result they want
@@ -98,11 +112,9 @@ def choose_faq(stdscr, faq_url):
 	# Most of the time the FAQ links are html files that need one more step of scraping to get the plain text...
 	# ... but sometimes the link goes directly to the text file
 	# So, that's what this little line of code checks for
-	if fnmatch.fnmatch(link, '*.txt'):
-		read_faq(link)
-	# Since the faq document is in html we need to scrape the page to get the plain text download url
-	text_faq = scrape.plaintext_faq(faqs[choice][5])
-	read_faq(text_faq)
+	if not fnmatch.fnmatch(link, '*.txt'):
+		link = scrape.plaintext_faq(faqs[choice][5])
+	read_faq(link)
 
 def read_faq(doc_url):
 	'''Opens doc_url, downloads the FAQ, and opens it in the system default editor

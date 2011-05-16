@@ -67,6 +67,11 @@ def faqs(faq_url):
 		# Get link element from first field
 		link_element = row[0].find('a')
 
+		# Skip over this row if it doesn't have 5 fields
+		# For example, Gamespot game guides get thrown in the table sometimes and only have 2 field, SO FUCK THAT SHIT.
+		if len(row) != 5:
+			continue
+
 		# Extract title, FAQ link, date, author, version, file size
 		title = link_element.text_content()
 		link = link_element.get('href')
