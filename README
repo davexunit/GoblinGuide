@@ -5,3 +5,8 @@ Purpose
 -------
 To give myself (AND YOU!) an easy way to search for and download game guides to read with my favorite text editor without needing to use a web browser.
 ... And to learn curses and screen scraping. :]
+
+Hacking
+-------
+Looking for stuff to do?
+grep TODO *

@@ -116,8 +116,11 @@ def choose_faq(stdscr, faq_url):
 def read_faq(doc_url):
 	'''Opens doc_url, downloads the FAQ, and opens it in the system default editor
 	'''
-	urllib.urlretrieve(doc_url, '/tmp/faq.txt')
-	subprocess.call(['vim', '/tmp/faq.txt'])
+	# TODO: Use the system default editor instead of just vim
+	# Thought it was the $EDITOR variable, but apparently not on Debian, heh
+	temp_file = '/tmp/faq.txt'
+	urllib.urlretrieve(doc_url, temp_file) 
+	subprocess.call(['vim', temp_file])
 
 if __name__ == '__main__':
 	while True:
