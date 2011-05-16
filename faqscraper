@@ -84,9 +84,6 @@ def choose_search_result(stdscr, results):
 	choices = []
 	for result in results:
 		choices.append('%s - %s' % result[:2])
-	f = open('out', 'w')
-	f.write(str(choices))
-	f.close()
 	# Get width and height of window
 	height, width = stdscr.getmaxyx()
 	# Prompt user with a menu to choose the search result they want
