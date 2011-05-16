@@ -18,6 +18,48 @@ def get_input(stdscr, y, x, prompt, strlen):
 	curses.noecho()
 	return user_input
 
+def menu(stdscr, y, x, height, width, title, choices):
+	'''Displays a menu for the user to choose a game from a list of search results.
+	'''
+	choice = 0
+	# The menu list will be in a pad
+	pad = curses.newpad(len(choices), width)
+	# Display the title
+	clear(stdscr)
+	stdscr.addstr(y, (width - len(title)) / 2, title, curses.A_BOLD)
+	stdscr.refresh()
+	# Adjust height and y value for the pad
+	y += 1
+	height -= 1
+	# Loop while responding to keyboard input
+	while True:
+		# Display all search results
+		for i, c in enumerate(choices):
+			if i == choice:
+				flag = curses.A_REVERSE
+			else:
+				flag = 0
+			pad.addstr(i, 1, c, flag)
+		# Display menu entry and center the pad on the selected item, clamping to the top and bottom of the pad
+		pad.refresh(min(len(choices) - height, max(0, choice - height / 2)), 0, y, x, height, width)
+		# Get a key prss
+		c = stdscr.getch()
+		# Quit on q
+		if c == ord('q'):
+			sys.exit(0)
+		# Scroll up/down list
+		elif c == curses.KEY_DOWN or c == ord('j'):
+			choice += 1
+			choice = choice % len(choices)
+		elif c == curses.KEY_UP or c == ord('k'):
+			choice -= 1
+			choice = choice % len(choices)
+		# Break out of loop on enter key which will bring the user to the FAQ screen
+		elif c == ord('\n'):
+			break
+	
+	return choice
+
 def search(stdscr):
 	clear(stdscr)
 	search = get_input(stdscr, 1, 1, 'Enter game search: ', 60)
@@ -26,36 +68,14 @@ def search(stdscr):
 def choose_search_result(stdscr, results):
 	'''Displays a menu for the user to choose a game from a list of search results.
 	'''
-	choice = 0
-	y = 2
-	x = 1
-	while True:
-		clear(stdscr)
-		stdscr.addstr(1, 1, 'Search Results:')
-		# Display all search results
-		for i, result in enumerate(results):
-			if i == choice:
-				flag = curses.A_REVERSE
-			else:
-				flag = 0
-			stdscr.addstr(i + y, x, '%s - %s' % result[:2], flag)
-		stdscr.refresh()
-		c = stdscr.getch()
-		
-		# Quit on q
-		if c == ord('q'):
-			sys.exit(0)
-		# Scroll up/down list
-		elif c == curses.KEY_DOWN:
-			choice += 1
-			choice = choice % len(results)
-		elif c == curses.KEY_UP:
-			choice -= 1
-			choice = choice % len(results)
-		# Break out of loop on enter key which will bring the user to the FAQ screen
-		elif c == ord('\n'):
-			break
-	
+	# Make the strings for menu choices
+	choices = []
+	for result in results:
+		choices.append('%s - %s' % result[:2])
+	# Get width and height of window
+	height, width = stdscr.getmaxyx()
+	# Prompt user with a menu to choose the search result they want
+	choice = menu(stdscr, 1, 1, height - 2, width - 2, 'Search Results', choices)
 	# Move to the FAQs display screen
 	choose_faq(stdscr, results[choice][2])
 
@@ -63,39 +83,16 @@ def choose_faq(stdscr, faq_url):
 	'''Displays a menu to choose a FAQ for a game
 	Assumes that faq_url is a url to the correct page
 	'''
-	clear(stdscr)
-	stdscr.addstr(1, 1, 'FAQs')
 	# Scrape the FAQs page
 	faqs = scrape.faqs(faq_url)
-	choice = 0
-	y = 2
-	x = 1
-	# Show the FAQs in a menu
-	while True:
-		# Display all search results
-		for i, faq in enumerate(faqs):
-			if i == choice:
-				flag = curses.A_REVERSE
-			else:
-				flag = 0
-			stdscr.addstr(i + y, x, '%s - %s - %s - %s - %s' % faq[:5], flag)
-		stdscr.refresh()
-		c = stdscr.getch()
-
-		# Quit on q
-		if c == ord('q'):
-			sys.exit(0)
-		# Scroll up/down list
-		elif c == curses.KEY_DOWN:
-			choice += 1
-			choice = choice % len(faqs)
-		elif c == curses.KEY_UP:
-			choice -= 1
-			choice = choice % len(faqs)
-		# Break out of loop on enter key which will bring the user to the FAQ screen
-		elif c == ord('\n'):
-			break
-	
+	# Make the strings for menu choices
+	choices = []
+	for faq in faqs:
+		choices.append('%s - %s - %s - %s - %s' % faq[:5])
+	# Get width and height of window
+	height, width = stdscr.getmaxyx()
+	# Prompt user with a menu to choose the search result they want
+	choice = menu(stdscr, 1, 1, height - 2, width - 2, 'FAQs', choices)
 	# Since the faq document is in html we need to scrape the page to get the plain text download url
 	text_faq = scrape.plaintext_faq(faqs[choice][5])
 	read_faq(text_faq)
