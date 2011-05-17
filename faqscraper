@@ -80,10 +80,18 @@ def search(screen):
 def choose_search_result(stdscr, results):
 	'''Displays a menu for the user to choose a game from a list of search results.
 	'''
+	# If there are no search results then show an informative message and don't show a menu
+	if len(results) == 0:
+		clear(stdscr)
+		stdscr.addstr(1, 1, 'No search results :\'(')
+		stdscr.getch()
+		return
+
 	# Make the strings for menu choices
 	choices = []
 	for result in results:
 		choices.append('%s - %s' % result[:2])
+
 	# Get width and height of window
 	height, width = stdscr.getmaxyx()
 	# Prompt user with a menu to choose the search result they want
