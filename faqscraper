@@ -7,28 +7,144 @@ import urllib
 import subprocess
 import scrape
 
-def clear(stdscr):
-	stdscr.clear()
-	stdscr.border(0)
+class FAQScraper:
+	def __init__(self):
+		self.activities = [self.main_menu]
+		
+	def run(self):
+		while len(self.activities):
+			curses.wrapper(self.activities[-1])
+	
+	def mode_push(self, mode):
+		self.activities.append(mode)
+	
+	def mode_replace(self, mode):
+		self.activities[-1] = mode
+	
+	def mode_pop(self):
+		self.activities.pop()
+	
+	def mode_clear(self):
+		self.activities = []
+	
+	def main_menu(self, screen):
+		# Main menu options
+		choices = ('Search for FAQs', 'Browse library', 'Quit')
 
-def get_input(stdscr, y, x, prompt, strlen):
-	stdscr.addstr(y, x, prompt)
-	stdscr.refresh()
+		# Get width and height of window
+		height, width = screen.getmaxyx()
+		# Prompt user with a menu to choose the search result they want
+		choice = menu(screen, 1, 1, height - 2, width - 2, 'FAQ Scraper 0.1', choices)
+
+		# Perform selected action
+		# Search
+		if choice == 0:
+			self.mode_push(self.search)
+		# Library
+		elif choice == 1:
+			self.mode_push(self.library)
+		# Quit
+		elif choice == 2 or choice == -1:
+			self.mode_pop()
+
+	def search(self, screen):
+		clear(screen)
+		search = get_input(screen, 1, 1, 'Enter game search: ', 60)
+		self.search_results = scrape.game_search(search)
+		self.mode_replace(self.choose_game)
+	
+	def choose_game(self, screen):
+		'''Displays a menu for the user to choose a game from a list of search results.
+		'''
+		# If there are no search results then show an informative message and don't show a menu
+		if len(self.search_results) == 0:
+			clear(screen)
+			screen.addstr(1, 1, 'No search results :\'(')
+			screen.getch()
+			return
+
+		# Make the strings for menu choices
+		choices = []
+		for result in self.search_results:
+			choices.append('%s - %s' % result[:2])
+
+		# Get width and height of window
+		height, width = screen.getmaxyx()
+		# Prompt user with a menu to choose the search result they want
+		choice = menu(screen, 1, 1, height - 2, width - 2, 'Search Results', choices)
+
+		# Leave function if -1 is returned
+		if choice == -1:
+			return
+		else:
+			# Move to the FAQs display screen
+			self.game_url = self.search_results[choice][2]
+			self.mode_push(self.choose_faq)
+	
+	def choose_faq(self, screen):
+		'''Displays a menu to choose a FAQ for a game
+		Assumes that faq_url is a url to the correct page
+		'''
+		# Scrape the FAQs page
+		faqs = scrape.faqs(self.game_url)
+		# Make the strings for menu choices
+		choices = []
+		for faq in faqs:
+			choices.append('%s - %s - %s - %s - %s' % faq[:5])
+
+		# Get width and height of window
+		height, width = screen.getmaxyx()
+		# Prompt user with a menu to choose the search result they want
+		choice = menu(screen, 1, 1, height - 2, width - 2, 'FAQs', choices)
+
+		# Leave function if -1 is returned
+		if choice == -1:
+			self.mode_pop()
+		else:
+			faq_url = faqs[choice][5]
+			# Most of the time the FAQ links are html files that need one more step of scraping to get the plain text...
+			# ... but sometimes the link goes directly to the text file
+			# So, that's what this little line of code checks for
+			if not fnmatch.fnmatch(faq_url, '*.txt'):
+				faq_url = scrape.plaintext_faq(faqs[choice][5])
+			self.read_faq(faq_url)
+	
+	def read_faq(self, faq_url):
+		'''Opens a url, writes the FAQ to a file, and opens it in the system default editor
+		'''
+		# TODO: Use the system default editor instead of just vim
+		# Thought it was the $EDITOR variable, but apparently not on Debian, heh
+		temp_file = '/tmp/faq.txt'
+		urllib.urlretrieve(faq_url, temp_file) 
+		subprocess.call(['vim', temp_file])
+
+def clear(screen):
+	screen.clear()
+	screen.border(0)
+
+def reset(screen):
+	curses.noecho()
+	curses.cbreak()
+	screen.keypad(1)
+
+def get_input(screen, y, x, prompt, strlen):
+	screen.addstr(y, x, prompt)
+	screen.refresh()
 	curses.echo()
-	user_input = stdscr.getstr(y, x + len(prompt), strlen)
+	user_input = screen.getstr(y, x + len(prompt), strlen)
 	curses.noecho()
 	return user_input
 
-def menu(stdscr, y, x, height, width, title, choices):
+def menu(screen, y, x, height, width, title, choices):
 	'''Displays a menu for the user to choose a game from a list of search results.
 	'''
 	choice = 0
 	# The menu list will be in a pad
 	pad = curses.newpad(len(choices), width)
 	# Display the title
-	clear(stdscr)
-	stdscr.addstr(y, (width - len(title)) / 2, title, curses.A_BOLD)
-	stdscr.refresh()
+	clear(screen)
+	screen.addstr(y, (width - len(title)) / 2, title, curses.A_BOLD)
+	screen.refresh()
 	# Adjust y value for the pad
 	y += 1
 	# Loop while responding to keyboard input
@@ -43,10 +159,10 @@ def menu(stdscr, y, x, height, width, title, choices):
 		# Display menu entry and center the pad on the selected item, clamping to the top and bottom of the pad
 		pad.refresh(min(len(choices) - height + 1, max(0, choice - height / 2)), 0, y, x, height, width)
 		# Get a key prss
-		c = stdscr.getch()
+		c = screen.getch()
 		# Quit on q
 		if c == ord('q'):
-			sys.exit(0)
+			return -1
 		# Scroll up/down list
 		elif c == curses.KEY_DOWN or c == ord('j'):
 			choice += 1
@@ -72,65 +188,5 @@ def menu(stdscr, y, x, height, width, title, choices):
 	
 	return choice
 
-def search(screen):
-	clear(screen)
-	search = get_input(screen, 1, 1, 'Enter game search: ', 60)
-	choose_search_result(screen, scrape.game_search(search))
-
-def choose_search_result(stdscr, results):
-	'''Displays a menu for the user to choose a game from a list of search results.
-	'''
-	# If there are no search results then show an informative message and don't show a menu
-	if len(results) == 0:
-		clear(stdscr)
-		stdscr.addstr(1, 1, 'No search results :\'(')
-		stdscr.getch()
-		return
-
-	# Make the strings for menu choices
-	choices = []
-	for result in results:
-		choices.append('%s - %s' % result[:2])
-
-	# Get width and height of window
-	height, width = stdscr.getmaxyx()
-	# Prompt user with a menu to choose the search result they want
-	choice = menu(stdscr, 1, 1, height - 2, width - 2, 'Search Results', choices)
-	# Move to the FAQs display screen
-	choose_faq(stdscr, results[choice][2])
-
-def choose_faq(stdscr, faq_url):
-	'''Displays a menu to choose a FAQ for a game
-	Assumes that faq_url is a url to the correct page
-	'''
-	# Scrape the FAQs page
-	faqs = scrape.faqs(faq_url)
-	# Make the strings for menu choices
-	choices = []
-	for faq in faqs:
-		choices.append('%s - %s - %s - %s - %s' % faq[:5])
-	# Get width and height of window
-	height, width = stdscr.getmaxyx()
-	# Prompt user with a menu to choose the search result they want
-	choice = menu(stdscr, 1, 1, height - 2, width - 2, 'FAQs', choices)
-	link = faqs[choice][5]
-	# Most of the time the FAQ links are html files that need one more step of scraping to get the plain text...
-	# ... but sometimes the link goes directly to the text file
-	# So, that's what this little line of code checks for
-	if not fnmatch.fnmatch(link, '*.txt'):
-		link = scrape.plaintext_faq(faqs[choice][5])
-	read_faq(link)
-
-def read_faq(doc_url):
-	'''Opens doc_url, downloads the FAQ, and opens it in the system default editor
-	'''
-	# TODO: Use the system default editor instead of just vim
-	# Thought it was the $EDITOR variable, but apparently not on Debian, heh
-	temp_file = '/tmp/faq.txt'
-	urllib.urlretrieve(doc_url, temp_file) 
-	subprocess.call(['vim', temp_file])
-
 if __name__ == '__main__':
-	while True:
-		# Initializes curses nicely, undoing all changes if the program crashes
-		curses.wrapper(search)
+	FAQScraper().run()
