@@ -5,6 +5,7 @@ import sys
 import fnmatch
 import urllib
 import subprocess
+import sqlite3
 import scrape
 
 class FAQScraper:
@@ -46,7 +47,63 @@ class FAQScraper:
 		# Quit
 		elif choice == 2 or choice == -1:
 			self.mode_pop()
-
+	
+	def library(self, screen):
+		# Connect to library database
+		self.db = sqlite3.connect('faqs.db')
+		# Create cursor
+		c = self.db.cursor()
+		# Query for all games
+		c.execute('select platform, title from game')
+		# Assemble menu from query results
+		choices = []
+		for row in c:
+			choices.append('%s - %s' % row)
+		# If the list of choices is empty then just print the sad message :[
+		clear(screen)
+		if len(choices) == 0:
+			screen.addstr(1, 1, 'Your library is empty! :\'(')
+			self.mode_pop()
+			screen.getch()
+		else:
+			# Get width and height of window
+			height, width = screen.getmaxyx()
+			# Prompt user with a menu to choose the search result they want
+			choice = menu(screen, 1, 1, height - 2, width - 2, 'Games', choices)
+			# Perform choice
+			# Quit
+			if choice == -1:
+				self.mode_pop()
+			else:
+				self.gamenum = choice + 1
+				self.mode_push(self.library_faq)
+	
+	def library_faq(self, screen):
+		# Create cursor
+		c = self.db.cursor()
+		# Query for all games
+		data = [self.gamenum]
+		c.execute('select title, author, date, version from faq where gamenum=?', data)
+		# Assemble menu from query results
+		choices = []
+		for row in c:
+			choices.append('%s - %s - %s - %s' % row)
+		# If the list of choices is empty then just print the sad message :[
+		clear(screen)
+		if len(choices) == 0:
+			screen.addstr(1, 1, 'No FAQs here! Stop manually editing the database! :P')
+			self.mode_pop()
+			screen.getch()
+		else:
+			# Get width and height of window
+			height, width = screen.getmaxyx()
+			# Prompt user with a menu to choose the search result they want
+			choice = menu(screen, 1, 1, height - 2, width - 2, 'FAQs', choices)
+			# Perform choice
+			# Quit
+			if choice == -1:
+				self.mode_pop()
+	
 	def search(self, screen):
 		clear(screen)
 		search = get_input(screen, 1, 1, 'Enter game search: ', 60)
@@ -75,7 +132,7 @@ class FAQScraper:
 
 		# Leave function if -1 is returned
 		if choice == -1:
-			return
+			self.mode_pop()
 		else:
 			# Move to the FAQs display screen
 			self.game_url = self.search_results[choice][2]
