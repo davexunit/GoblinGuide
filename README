@@ -1,16 +1,16 @@
-FAQScaper - A simple GameFAQs scraper for GNU/Linux
----------------------------------------------------
-
-Purpose
--------
-To give myself (AND YOU!) an easy way to search for and download game guides to read with my favorite text editor without needing to use a web browser.
-... And to learn curses and screen scraping. :]
+FAQ Scaper
+---------
+FAQ Scraper is a simple GameFAQs scraper for GNU/Linux with an ncurses user interface.
+In addition to searching and viewing FAQs, FAQ Scraper can store a compendium of your favorite game guides for quick viewing later.
+I wrote this app to learn curses and screen scraping but to my surprise I found FAQ Scraper to be quite a convenient way to quickly download game guides and view them in my text editor of preference.
+Maybe you can find FAQ Scraper useful, too!
 
 Dependencies
 ------------
-lxml
+lxml, sqlite3
 
 Hacking
 -------
-Looking for stuff to do?
-grep TODO *
+Looking for stuff to do? grep TODO *
+Or, add a new feature I haven't explicity mentioned as a TODO item.
+OR, fix a bug! :D
