@@ -169,11 +169,11 @@ class FAQScraper:
 	def read_faq(self, faq_url):
 		'''Opens a url, writes the FAQ to a file, and opens it in the system default editor
 		'''
-		# TODO: Use the system default editor instead of just vim
-		# Thought it was the $EDITOR variable, but apparently not on Debian, heh
 		temp_file = '/tmp/faq.txt'
 		urllib.urlretrieve(faq_url, temp_file) 
-		subprocess.call(['vim', temp_file])
+		# Open FAQ in the default editor
+		# This may be a Debian only thing though...
+		subprocess.call(['editor', temp_file])
 
 def clear(screen):
 	screen.clear()
