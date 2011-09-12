@@ -1,16 +1,12 @@
-FAQ Scaper
+Goblin Guide
 ---------
-FAQ Scraper is a simple GameFAQs scraper for GNU/Linux with an ncurses user interface.
-In addition to searching and viewing FAQs, FAQ Scraper can store a compendium of your favorite game guides for quick viewing later.
-I wrote this app to learn curses and screen scraping but to my surprise I found FAQ Scraper to be quite a convenient way to quickly download game guides and view them in my text editor of preference.
-Maybe you can find FAQ Scraper useful, too!
+Goblin Guide is a GameFAQs scraper for GNU/Linux.
+It is written to fulfill my personal desire of being able to quickly open text
+game guides from GameFAQs in my preferred text editor, directly from the
+terminal.
+Goblin Guide downloads and keeps the guides locally for convenience as a lot of
+guides can be quite large in file size.
 
 Dependencies
 ------------
 lxml, sqlite3
-
-Hacking
--------
-Looking for stuff to do? grep TODO *
-Or, add a new feature I haven't explicity mentioned as a TODO item.
-OR, fix a bug! :D
