@@ -1,0 +1,53 @@
+#!/usr/bin/python2
+
+def main():
+    '''Entry point to the program. Displays the main menu and moves on from
+    there.
+    '''
+    print "GOBLIN GUIDE"
+    print "------------"
+    print
+
+    options = (("Search", do_search), ("Quit", do_quit))
+    selection = menu("Main Menu", options)
+
+def do_search():
+    '''User selects a search method, either databae or scraper.
+    '''
+    pass
+
+def do_quit():
+    '''Quits program. I know, totally not obvious given the function name.
+    '''
+    import sys
+    sys.exit(0)
+
+def menu(title, options):
+    '''Displays a text menu with the given title and options and prompts the
+    user for a selection. The options list should be composed of tuples in the
+    form (name, callback). For example: ("Stuff", do_stuff). This function will
+    call the selected option's callback function.
+    '''
+    # Loop until valid option is selected
+    while True:
+        print title + ":"
+        print
+
+        for i, o in enumerate(options):
+            name = o[0]
+            # Print option
+            # Numbering starts from 1
+            print str(i + 1) + ") " + name
+
+        selection = int(raw_input("Choose an option: "))
+
+        # Validate selection
+        # If the selection is valid we can break out of the loop
+        if selection > 0 and selection <= len(options):
+            break
+
+    # Call the function for the chosen option
+    options[selection - 1][1]()
+
+if __name__ == '__main__':
+	main()
