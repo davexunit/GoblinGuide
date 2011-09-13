@@ -6,19 +6,17 @@ def main():
     '''Entry point to the program. Displays the main menu and moves on from
     there.
     '''
+    options = (("Search", do_search, None),)
+
     while True:
         print "GOBLIN GUIDE"
         print "------------"
         print
 
-        options = (("Search", do_search, None), ("Quit", do_quit, None))
-        menu("Main Menu", options)
-
-def do_quit():
-    '''Quits program. I know, totally not obvious given the function name.
-    '''
-    import sys
-    sys.exit(0)
+        # Display menu. If return value is false that means that 'Quit' was
+        # selected, in which case we exit.
+        if not menu("Main Menu", options, "Quit"):
+            break
 
 def do_search():
     '''User selects a search method, either database or scraper.
@@ -30,26 +28,33 @@ def do_search():
     do_select_result(results)
 
 def do_select_result(results):
-    # Generate menu and display results
+    # Generate menu
     options = []
+
     for r in results:
         options.append((r['platform'] + " - " + r['title'],
             do_select_gamefaqs_guide, (r,)))
 
-    menu("Results", options)
+    # Menu loop
+    while menu("Results", options):
+        pass
 
 def do_select_gamefaqs_guide(result_row):
     '''User selects a guide from the list. result_row is a dictionary of the
     chosen result from a call to scrape.game_search.
     '''
+    # Generate list of game guides
     faqs = scrape.faqs(result_row['url'])
     options = []
+
     for f in faqs:
         option_name = "%s - %s - %s - %s - %s" % (f['title'], f['date'],
             f['author'], f['version'], f['size'])
         options.append((option_name, do_download_guide, (f,)))
 
-    menu("Guides", options)
+    # Menu loop
+    while menu("Guides", options):
+        pass
 
 def do_download_guide(faq_row):
     '''Downloads the game guide to the local machine and prompts user to open
@@ -78,7 +83,7 @@ def view_guide(file):
     import subprocess
     subprocess.call(["vim", file])
 
-def menu(title, options):
+def menu(title, options, cancel_text="Cancel"):
     '''Displays a text menu with the given title and options and prompts the
     user for a selection.
     The options list should be composed of tuples with the following elements:
@@ -86,8 +91,11 @@ def menu(title, options):
      * Callback
      * Args
     For example: ("Stuff", do_stuff, ("stuff1", 0)).
+    cancel_text contains the text to display for the cancel menu item.
     This function will call the selected option's callback and pass the given
     arguments.
+    True will be returned if an option was selected that wasn't cancel and
+    false if cancel was chosen.
     '''
     # Loop until valid option is selected
     while True:
@@ -99,6 +107,9 @@ def menu(title, options):
             # Numbering starts from 1
             print str(i + 1) + ") " + name
 
+        # Display cancel option
+        print "%d) %s" % (len(options) + 1, cancel_text)
+
         # Get user input
         # Suppress exception when non-numeric text is entered
         try:
@@ -108,8 +119,12 @@ def menu(title, options):
 
         # Validate selection
         # If the selection is valid we can break out of the loop
-        if selection > 0 and selection <= len(options):
+        if selection > 0 and selection <= len(options) + 1:
             break
+
+    # Cancel option chosen
+    if selection == len(options) + 1:
+        return False
 
     # Call the function for the chosen option
     func = options[selection - 1][1]
@@ -118,6 +133,8 @@ def menu(title, options):
         func()
     else:
         func(*args)
+
+    return True
 
 if __name__ == '__main__':
 	main()
