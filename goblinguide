@@ -6,12 +6,13 @@ def main():
     '''Entry point to the program. Displays the main menu and moves on from
     there.
     '''
-    print "GOBLIN GUIDE"
-    print "------------"
-    print
+    while True:
+        print "GOBLIN GUIDE"
+        print "------------"
+        print
 
-    options = (("Search", do_search, None), ("Quit", do_quit, None))
-    selection = menu("Main Menu", options)
+        options = (("Search", do_search, None), ("Quit", do_quit, None))
+        menu("Main Menu", options)
 
 def do_quit():
     '''Quits program. I know, totally not obvious given the function name.
@@ -20,16 +21,21 @@ def do_quit():
     sys.exit(0)
 
 def do_search():
-    '''User selects a search method, either databae or scraper.
+    '''User selects a search method, either database or scraper.
     '''
     # Perform user search
     query = raw_input("Search: ")
     results = scrape.game_search(query)
 
+    do_select_result(results)
+
+def do_select_result(results):
     # Generate menu and display results
     options = []
     for r in results:
-        options.append((r['platform'] + " - " + r['title'], do_select_gamefaqs_guide, (r,)))
+        options.append((r['platform'] + " - " + r['title'],
+            do_select_gamefaqs_guide, (r,)))
+
     menu("Results", options)
 
 def do_select_gamefaqs_guide(result_row):
@@ -42,6 +48,7 @@ def do_select_gamefaqs_guide(result_row):
         option_name = "%s - %s - %s - %s - %s" % (f['title'], f['date'],
             f['author'], f['version'], f['size'])
         options.append((option_name, do_download_guide, (f,)))
+
     menu("Guides", options)
 
 def do_download_guide(faq_row):
@@ -49,7 +56,6 @@ def do_download_guide(faq_row):
     it. faq_row is a dictionary of the chosen guide from a call to scrape.faqs.
     '''
     import urllib
-    import subprocess
 
     # A bit more work might need to be done on the URL. Some guides link
     # directly to a text file, while others link to another web page that
@@ -58,12 +64,19 @@ def do_download_guide(faq_row):
     url = scrape.plaintext_faq_url(faq_row['url'])
 
     # Download file
+    print "Downloading..."
     temp_file = "/tmp/faq.txt"
     urllib.urlretrieve(url, temp_file) 
 
+    view_guide(temp_file)
+
+def view_guide(file):
+    '''Opens the given file in a text editor.
+    '''
     # Open guide in vim
     # TODO: Make the editor a config option
-    subprocess.call(["vim", temp_file])
+    import subprocess
+    subprocess.call(["vim", file])
 
 def menu(title, options):
     '''Displays a text menu with the given title and options and prompts the
