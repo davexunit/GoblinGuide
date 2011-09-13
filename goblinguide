@@ -1,6 +1,8 @@
 #!/usr/bin/python2
 
+from config import config
 import scrape
+import util
 
 def main():
     '''Entry point to the program. Displays the main menu and moves on from
@@ -47,20 +49,34 @@ def do_select_gamefaqs_guide(result_row):
     faqs = scrape.faqs(result_row['url'])
     options = []
 
+    # Download all option
+    options.append(("Download All", do_download_all, (faqs, result_row)))
+
     for f in faqs:
         option_name = "%s - %s - %s - %s - %s" % (f['title'], f['date'],
             f['author'], f['version'], f['size'])
-        options.append((option_name, do_download_guide, (f,)))
+        options.append((option_name, do_download_and_view_guide, (f, result_row)))
 
     # Menu loop
     while menu("Guides", options):
         pass
 
-def do_download_guide(faq_row):
+def do_download_and_view_guide(faq_row, game_row):
+    file = download_guide(faq_row, game_row)
+    view_guide(file)
+
+def do_download_all(faqs, game_row):
+    for f in faqs:
+        download_guide(f, game_row)
+
+def download_guide(faq_row, game_row):
     '''Downloads the game guide to the local machine and prompts user to open
-    it. faq_row is a dictionary of the chosen guide from a call to scrape.faqs.
+    it. faq_row is a dictionary of the chosen guide from a call to
+    scrape.faqs(). game_row is a dictionary of the chosen game from a call to
+    scrape.game_search() and is needed for categorization purposes.
     '''
     import urllib
+    import os
 
     # A bit more work might need to be done on the URL. Some guides link
     # directly to a text file, while others link to another web page that
@@ -68,12 +84,30 @@ def do_download_guide(faq_row):
     # text file for convenience.
     url = scrape.plaintext_faq_url(faq_row['url'])
 
-    # Download file
-    print "Downloading..."
-    temp_file = "/tmp/faq.txt"
-    urllib.urlretrieve(url, temp_file) 
+    # cd to the user's home directory
+    os.chdir(os.environ['HOME'])
+    # Get the absolute path to the user's game guide directory
+    guide_dir = os.path.abspath(config.get('General', 'guide_dir'))
 
-    view_guide(temp_file)
+    # Create needed subdirectories if they don't exist
+    file = os.path.join(guide_dir, util.sanitize_filename(game_row['platform']))
+    if not os.path.exists(file):
+        os.mkdir(file)
+
+    file = os.path.join(file, util.sanitize_filename(game_row['title']))
+    if not os.path.exists(file):
+        os.mkdir(file)
+
+    # Append the location for the guide. 'platform/title'
+    file = os.path.join(file, util.sanitize_filename(faq_row['author'] + " - " +
+        faq_row['title'] + " - " + faq_row['version']))
+
+    print "Downloading guide to %s..." % file
+
+    # Download file
+    urllib.urlretrieve(url, file) 
+
+    return file
 
 def view_guide(file):
     '''Opens the given file in a text editor.
@@ -81,7 +115,7 @@ def view_guide(file):
     # Open guide in vim
     # TODO: Make the editor a config option
     import subprocess
-    subprocess.call(["vim", file])
+    subprocess.call([config.get('General', 'editor'), file])
 
 def menu(title, options, cancel_text="Cancel"):
     '''Displays a text menu with the given title and options and prompts the
