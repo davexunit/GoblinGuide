@@ -1,5 +1,7 @@
 #!/usr/bin/python2
 
+import scrape
+
 def main():
     '''Entry point to the program. Displays the main menu and moves on from
     there.
@@ -8,13 +10,8 @@ def main():
     print "------------"
     print
 
-    options = (("Search", do_search), ("Quit", do_quit))
+    options = (("Search", do_search, None), ("Quit", do_quit, None))
     selection = menu("Main Menu", options)
-
-def do_search():
-    '''User selects a search method, either databae or scraper.
-    '''
-    pass
 
 def do_quit():
     '''Quits program. I know, totally not obvious given the function name.
@@ -22,16 +19,66 @@ def do_quit():
     import sys
     sys.exit(0)
 
+def do_search():
+    '''User selects a search method, either databae or scraper.
+    '''
+    # Perform user search
+    query = raw_input("Search: ")
+    results = scrape.game_search(query)
+
+    # Generate menu and display results
+    options = []
+    for r in results:
+        options.append((r['platform'] + " - " + r['title'], do_select_gamefaqs_guide, (r,)))
+    menu("Results", options)
+
+def do_select_gamefaqs_guide(result_row):
+    '''User selects a guide from the list. result_row is a dictionary of the
+    chosen result from a call to scrape.game_search.
+    '''
+    faqs = scrape.faqs(result_row['url'])
+    options = []
+    for f in faqs:
+        option_name = "%s - %s - %s - %s - %s" % (f['title'], f['date'],
+            f['author'], f['version'], f['size'])
+        options.append((option_name, do_download_guide, (f,)))
+    menu("Guides", options)
+
+def do_download_guide(faq_row):
+    '''Downloads the game guide to the local machine and prompts user to open
+    it. faq_row is a dictionary of the chosen guide from a call to scrape.faqs.
+    '''
+    import urllib
+    import subprocess
+
+    # A bit more work might need to be done on the URL. Some guides link
+    # directly to a text file, while others link to another web page that
+    # encapsulates that text file. We want to get the direct link to the
+    # text file for convenience.
+    url = scrape.plaintext_faq_url(faq_row['url'])
+
+    # Download file
+    temp_file = "/tmp/faq.txt"
+    urllib.urlretrieve(url, temp_file) 
+
+    # Open guide in vim
+    # TODO: Make the editor a config option
+    subprocess.call(["vim", temp_file])
+
 def menu(title, options):
     '''Displays a text menu with the given title and options and prompts the
-    user for a selection. The options list should be composed of tuples in the
-    form (name, callback). For example: ("Stuff", do_stuff). This function will
-    call the selected option's callback function.
+    user for a selection.
+    The options list should be composed of tuples with the following elements:
+     * Name
+     * Callback
+     * Args
+    For example: ("Stuff", do_stuff, ("stuff1", 0)).
+    This function will call the selected option's callback and pass the given
+    arguments.
     '''
     # Loop until valid option is selected
     while True:
         print title + ":"
-        print
 
         for i, o in enumerate(options):
             name = o[0]
@@ -39,7 +86,12 @@ def menu(title, options):
             # Numbering starts from 1
             print str(i + 1) + ") " + name
 
-        selection = int(raw_input("Choose an option: "))
+        # Get user input
+        # Suppress exception when non-numeric text is entered
+        try:
+            selection = int(raw_input("Choose an option: "))
+        except ValueError:
+            continue
 
         # Validate selection
         # If the selection is valid we can break out of the loop
@@ -47,7 +99,12 @@ def menu(title, options):
             break
 
     # Call the function for the chosen option
-    options[selection - 1][1]()
+    func = options[selection - 1][1]
+    args = options[selection - 1][2]
+    if args == None:
+        func()
+    else:
+        func(*args)
 
 if __name__ == '__main__':
 	main()
